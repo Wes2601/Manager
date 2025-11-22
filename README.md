@@ -1,4 +1,4 @@
-# ⚽ Football Manager (Versão Python)
+# ⚽ Meu Manager (Versão Python)
 
 Este é um simulador de gerenciamento de futebol que estou desenvolvendo. O projeto nasceu de uma migração completa de um sistema que criei originalmente em **Java**, agora reescrito em **Python** para explorar a linguagem.
 
