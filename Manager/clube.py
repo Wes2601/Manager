@@ -8,7 +8,7 @@ class Time:
 
         self.id = id
         self.nome = nome
-        self.saldo_inicial = saldo_inicial
+        self.saldo_em_caixa = saldo_inicial
 
         self.orcamento_transferencias = saldo_inicial // 4
         self.orcamento_salario_semanal = saldo_inicial // 100
