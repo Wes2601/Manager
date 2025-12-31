@@ -1,4 +1,5 @@
-class PosicaoTabela():
+class Posicao:
+
     def __init__(self, time):
         self.time = time
         self.pontos = 0
@@ -11,14 +12,17 @@ class PosicaoTabela():
     def saldo_gols(self):
         return self.gols_pro - self.gols_contra
 
-class TabelaDeClassificacao:
+
+class Tabela:
     def __init__(self, times):
+
         self.posicoes = {}
         for time in times:
-            self.posicoes[time.id] = PosicaoTabela(time)
+            self.posicoes[time] = Posicao(time)
 
     def atualizar(self, time, gols_feitos, gols_sofridos):
-        posicao = self.posicoes[time.id]
+        posicao = self.posicoes[time]
+
         posicao.gols_pro += gols_feitos
         posicao.gols_contra += gols_sofridos
 

@@ -4,4 +4,5 @@ class Partida:
         self.time_visitante = time_visitante
         self.placar_casa = None
         self.placar_visitante = None
+        self.foi_jogado = False
 

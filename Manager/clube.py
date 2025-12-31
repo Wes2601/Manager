@@ -3,9 +3,9 @@ from tatica import Tatica
 from caixa_de_entrada import CaixaDeEntrada
 import random
 
-class Time:
-    def __init__(self,id, nome, saldo_inicial):
 
+class Time:
+    def __init__(self, id, nome, saldo_inicial):
         self.id = id
         self.nome = nome
         self.saldo_em_caixa = saldo_inicial
@@ -21,22 +21,31 @@ class Time:
         self.caixa_de_entrada = CaixaDeEntrada()
 
         self.comissao_tecnica.append(Staff(
-            nome="Técnico" + nome,
+            nome="Técnico " + nome,
             cargo=Cargo.TECNICO_PRINCIPAL,
-            habilidade=random.randint(5,16)
+            habilidade=random.randint(5, 16)
         ))
 
         self.comissao_tecnica.append(Staff(
-            nome="Olheiro" + nome,
+            nome="Olheiro " + nome,
             cargo=Cargo.OLHEIRO_CHEFE,
-            habilidade=random.randint(5,16)
+            habilidade=random.randint(5, 16)
         ))
 
         self.comissao_tecnica.append(Staff(
-            nome= "Fisio" + nome,
+            nome="Fisio " + nome,
             cargo=Cargo.FISIOTERAPEUTA_CHEFE,
-            habilidade=random.randint(5,16)
+            habilidade=random.randint(5, 16)
         ))
 
-    def adicionar_jogador(self,jogador):
-       self.elenco.append(jogador)
+    @property
+    def forca_geral(self):
+        if not self.elenco:
+            return 0
+
+        soma_potencial = sum(jogador.potencial for jogador in self.elenco)
+        media = soma_potencial / len(self.elenco)
+        return int(media)
+
+    def adicionar_jogador(self, jogador):
+        self.elenco.append(jogador)
