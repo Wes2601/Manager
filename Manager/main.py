@@ -6,50 +6,51 @@ import random
 
 def criar_times_da_liga():
     nomes_times = [
-        "Flamengo", "Palmeiras", "Atlético-MG", "São Paulo",
-        "Fluminense", "Grêmio", "Internacional", "Corinthians",
-        "Santos", "Vasco", "Botafogo", "Cruzeiro",
-        "Bahia", "Fortaleza", "Athletico-PR", "Cuiabá",
-        "Goiás", "Coritiba", "América-MG", "Red Bull Bragantino"
+        "Flamengo", "Palmeiras", "São Paulo", "Corinthians",
+        "Vasco", "Fluminense", "Botafogo", "Grêmio",
+        "Inter", "Atlético-MG", "Cruzeiro", "Bahia",
+        "Fortaleza", "Athletico-PR", "Santos", "Bragantino",
+        "Criciúma", "Juventude", "Vitória", "Atlético-GO"
     ]
 
-    lista_de_objetos_time = []
+    lista_objetos_times = []
 
-    nomes_jogadores = ["Silva", "Santos", "Oliveira", "Souza", "Rodrigues", "Ferreira", "Alves", "Pereira", "Lima",
-                       "Gomes"]
-    prenomes = ["Gabriel", "Lucas", "Matheus", "Pedro", "Guilherme", "Gustavo", "Rafael", "Felipe", "João", "Enzo"]
-    posicoes = ["Goleiro", "Zagueiro", "Lateral", "Volante", "Meia", "Atacante"]
+    nomes_masculinos = ["Carlos", "André", "Felipe", "Lucas", "Matheus", "Gabriel", "Pedro", "João", "Rafael", "Bruno",
+                        "Thiago", "Luiz", "Gustavo", "Rodrigo", "Fábio"]
+    sobrenomes = ["Silva", "Santos", "Oliveira", "Souza", "Pereira", "Lima", "Ferreira", "Costa", "Rodrigues",
+                  "Almeida", "Nascimento", "Alves", "Carvalho", "Araújo", "Ribeiro"]
 
-    for i, nome_time in enumerate(nomes_times):
-        if nome_time in ["Flamengo", "Palmeiras"]:
-            saldo = 50000000
-        elif nome_time in ["Vasco", "Botafogo", "Cruzeiro"]:
-            saldo = 25000000
-        else:
-            saldo = 10000000
+    for nome_time in nomes_times:
+        novo_time = Time(nome_time, random.randint(1000, 9999), "Brasil")
 
-        novo_time = Time(i, nome_time, saldo)
+        esquema = [("Goleiro", 2), ("Defensor", 8), ("Meio-Campista", 8), ("Atacante", 4)]
 
-        for j in range(22):
-            nome_completo = f"{random.choice(prenomes)} {random.choice(nomes_jogadores)}"
+        for funcao, quantidade in esquema:
+            for _ in range(quantidade):
+                nome_completo = f"{random.choice(nomes_masculinos)} {random.choice(sobrenomes)}"
 
-            base_potencial = 70 if saldo > 30000000 else 50
-            potencial = random.randint(base_potencial, 95)
+                base_pot = 70
+                if nome_time in ["Flamengo", "Palmeiras", "Atlético-MG"]:
+                    base_pot = 78
 
-            ano_nasc = 2025 - random.randint(16, 35)
+                potencial = random.randint(base_pot - 10, base_pot + 10)
+                if potencial > 99: potencial = 99
 
-            novo_jogador = Jogador(
-                nome=nome_completo,
-                id=f"{i}-{j}",
-                nacionalidade="Brasil",
-                data_nascimento=date(ano_nasc, 1, 1),
-                funcao=random.choice(posicoes),
-                potencial=potencial,
-                contrato=2026
-            )
+                idade = random.randint(17, 36)
+                ano_nasc = 2025 - idade
 
-            novo_time.adicionar_jogador(novo_jogador)
+                novo_jogador = Jogador(
+                    nome_completo,
+                    random.randint(10000, 99999),
+                    "Brasil",
+                    date(ano_nasc, 1, 1),
+                    funcao,
+                    potencial,
+                    2026
+                )
 
-        lista_de_objetos_time.append(novo_time)
+                novo_time.adicionar_jogador(novo_jogador)
 
-    return lista_de_objetos_time
+        lista_objetos_times.append(novo_time)
+
+    return lista_objetos_times

@@ -1,5 +1,7 @@
-class Posicao:
+from clube import Time
 
+
+class Posicao:
     def __init__(self, time):
         self.time = time
         self.pontos = 0
@@ -15,21 +17,18 @@ class Posicao:
 
 class Tabela:
     def __init__(self, times):
+        self.posicoes = {time: Posicao(time) for time in times}
 
-        self.posicoes = {}
-        for time in times:
-            self.posicoes[time] = Posicao(time)
-
-    def atualizar(self, time, gols_feitos, gols_sofridos):
+    def atualizar(self, time, gols_pro, gols_contra):
         posicao = self.posicoes[time]
 
-        posicao.gols_pro += gols_feitos
-        posicao.gols_contra += gols_sofridos
+        posicao.gols_pro += gols_pro
+        posicao.gols_contra += gols_contra
 
-        if gols_feitos > gols_sofridos:
+        if gols_pro > gols_contra:
             posicao.pontos += 3
             posicao.vitorias += 1
-        elif gols_feitos == gols_sofridos:
+        elif gols_pro == gols_contra:
             posicao.pontos += 1
             posicao.empates += 1
         else:

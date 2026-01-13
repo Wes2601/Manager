@@ -10,29 +10,25 @@ class Jogador:
         self.funcao = funcao
         self.potencial = potencial
         self.contrato = contrato
+
         self.esta_lesionado = False
-        self.dias_lesao = 0
+        self.condicao_fisica = 100
+
+    @property
+    def salario(self):
+        fator_salarial = (self.potencial ** 2) / 10
+        return int(fator_salarial * 15)
 
     @property
     def valor_mercado(self):
-        valor = self.potencial * 10000
+        hoje = date.today()
+        idade = hoje.year - self.data_nascimento.year
 
-        idade = 2025 - self.data_nascimento.year
+        fator_idade = 1.0
         if idade < 23:
-            valor = valor * 1.5
+            fator_idade = 1.5
+        elif idade > 32:
+            fator_idade = 0.6
 
-        return int(valor)
-
-    def processar_recuperacao_diaria(self, habilidade_medico):
-        if not self.esta_lesionado:
-            return None
-
-        fator_cura = 1 + (habilidade_medico / 10)
-        self.dias_lesao -= fator_cura
-
-        if self.dias_lesao <= 0:
-            self.dias_lesao = 0
-            self.esta_lesionado = False
-            return f"{self.nome} se recuperou da lesão!"
-
-        return None
+        valor_base = (self.potencial ** 2) * 500
+        return int(valor_base * fator_idade)
