@@ -21,7 +21,6 @@ class Time:
     def __str__(self):
         return self.nome
 
-
     @property
     def folha_salarial(self):
         if not self.elenco:

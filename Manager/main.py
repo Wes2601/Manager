@@ -21,6 +21,7 @@ def criar_times_da_liga():
                   "Almeida", "Nascimento", "Alves", "Carvalho", "Araújo", "Ribeiro"]
 
     for nome_time in nomes_times:
+        # Criação do Time: Nome primeiro, depois ID
         novo_time = Time(nome_time, random.randint(1000, 9999), "Brasil")
 
         esquema = [("Goleiro", 2), ("Defensor", 8), ("Meio-Campista", 8), ("Atacante", 4)]

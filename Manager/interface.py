@@ -80,7 +80,7 @@ class Interface:
                 text_color=cor_texto,
                 border_width=1,
                 border_color="gray",
-                command=lambda j=jogador: print(f"Clicou em {j.nome}")
+                command=lambda j=jogador: self.abrir_detalhes(j)
             )
             btn.pack(fill="x", pady=2, padx=5)
 
@@ -201,6 +201,69 @@ class Interface:
         self.montar_aba_tabela()
         self.montar_aba_calendario()
         self.montar_aba_mercado()
+
+    def abrir_detalhes(self, jogador):
+        janela = ctk.CTkToplevel(self.root)
+        janela.title(f"Detalhes: {jogador.nome}")
+        janela.geometry("400x450")
+
+        janela.attributes("-topmost", True)
+
+        lbl_nome = ctk.CTkLabel(janela, text=jogador.nome, font=("Arial", 22, "bold"))
+        lbl_nome.pack(pady=(20, 5))
+
+        lbl_funcao = ctk.CTkLabel(janela, text=f"{jogador.funcao} | {jogador.nacionalidade}", text_color="gray")
+        lbl_funcao.pack(pady=0)
+
+        frame_infos = ctk.CTkFrame(janela)
+        frame_infos.pack(pady=20, padx=20, fill="x")
+
+        def criar_linha(titulo, valor, cor="white"):
+            f = ctk.CTkFrame(frame_infos, fg_color="transparent")
+            f.pack(fill="x", pady=5, padx=10)
+            ctk.CTkLabel(f, text=titulo, text_color="gray").pack(side="left")
+            ctk.CTkLabel(f, text=valor, text_color=cor, font=("Arial", 12, "bold")).pack(side="right")
+
+        idade = 2025 - jogador.data_nascimento.year
+
+        criar_linha("Idade:", f"{idade} anos")
+        criar_linha("Potencial:", f"{jogador.potencial}")
+        criar_linha("Condição Física:", f"{jogador.condicao_fisica}%",
+                    "green" if jogador.condicao_fisica > 80 else "red")
+
+        ctk.CTkFrame(janela, height=2, fg_color="gray30").pack(fill="x", padx=20, pady=10)
+
+        lbl_financas = ctk.CTkLabel(janela, text="FINANÇAS", font=("Arial", 14, "bold"))
+        lbl_financas.pack(pady=5)
+
+        lbl_salario = ctk.CTkLabel(janela, text=f"Salário: R$ {jogador.salario:,.2f} / semana", text_color="yellow")
+        lbl_salario.pack()
+
+        lbl_valor = ctk.CTkLabel(janela, text=f"Valor de Mercado: R$ {jogador.valor_mercado:,.2f}",
+                                 text_color="#00FF00")
+        lbl_valor.pack()
+
+        btn_vender = ctk.CTkButton(
+            janela,
+            text="VENDER JOGADOR",
+            fg_color="red",
+            hover_color="darkred",
+            command=lambda: [self.vender_jogador(jogador), janela.destroy()]
+        )
+        btn_vender.pack(pady=30, padx=40, fill="x")
+
+    def vender_jogador(self, jogador):
+        meu_time = self.campeonato.time_do_usuario
+        valor_venda = jogador.valor_mercado
+
+        if jogador in meu_time.elenco:
+            meu_time.elenco.remove(jogador)
+
+            meu_time.saldo_em_caixa += valor_venda
+
+            print(f"💰 VENDIDO! {jogador.nome} saiu por R$ {valor_venda:,.2f}")
+
+            self.atualizar_interface()
 
 
 if __name__ == "__main__":
