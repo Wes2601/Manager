@@ -9,6 +9,8 @@ class Jogo:
         self.placar_casa = 0
         self.placar_visitante = 0
         self.foi_jogado = False
+        self.autores_casa = []
+        self.autores_visitante = []
 
 
 class ClassificacaoTime:
@@ -56,18 +58,22 @@ class Campeonato:
         indice_rodada = dias_passados // 3
 
         if 0 <= indice_rodada < len(self.rodadas):
-            return self.rodadas[indice_rodada]
-        return []
+            return self.rodadas[indice_rodada], indice_rodada + 1
+        return [], 0
 
     def avancar_um_dia(self):
-        jogos = self.get_jogos_de_hoje()
+        jogos, numero_rodada = self.get_jogos_de_hoje()
 
         if jogos and not jogos[0].foi_jogado:
-            print(f"\n--- RESULTADOS DA RODADA ({self.data_atual.strftime('%d/%m')}) ---")
+            print(f"\n=== RESULTADOS DA RODADA {numero_rodada}/38 ({self.data_atual.strftime('%d/%m')}) ===")
+
             for jogo in jogos:
                 self.simular_partida(jogo)
+
+            self.mostrar_resumo_usuario(numero_rodada)
+
         else:
-            print(f"Dia {self.data_atual.strftime('%d/%m')}: Treino e descanso. Nenhum jogo hoje.")
+            print(f"Dia {self.data_atual.strftime('%d/%m')}: Treino e recuperação.")
 
         if self.data_atual.weekday() == 0:
             self.processar_financas()
@@ -82,28 +88,31 @@ class Campeonato:
         jogo.placar_visitante = int(random.triangular(0, 4, chance_visitante / 20))
         jogo.foi_jogado = True
 
-        print(f"FIM: {jogo.time_casa.nome} {jogo.placar_casa} x {jogo.placar_visitante} {jogo.time_visitante.nome}")
-
-        self.narrar_gols(jogo.time_casa, jogo.placar_casa)
-        self.narrar_gols(jogo.time_visitante, jogo.placar_visitante)
+        jogo.autores_casa = self.gerar_artilheiros(jogo.time_casa, jogo.placar_casa)
+        jogo.autores_visitante = self.gerar_artilheiros(jogo.time_visitante, jogo.placar_visitante)
 
         self.atualizar_tabela(jogo)
 
+        prefixo = "   "
+        if jogo.time_casa == self.time_do_usuario or jogo.time_visitante == self.time_do_usuario:
+            prefixo = "👉 "
+
+        print(f"{prefixo}{jogo.time_casa.nome} {jogo.placar_casa} x {jogo.placar_visitante} {jogo.time_visitante.nome}")
+
         if jogo.time_casa == self.time_do_usuario:
             renda, publico = jogo.time_casa.receber_bilheteria()
-            print(f"   --> Bilheteria do seu time: R$ {renda:,.2f} ({publico} torcedores)")
+            print(f"      Bilheteria: R$ {renda:,.2f}")
 
-    def narrar_gols(self, time, gols):
+    def gerar_artilheiros(self, time, gols):
+        lista_nomes = []
         if gols > 0:
             atacantes = [j for j in time.elenco if "Atacante" in j.funcao or "Meio" in j.funcao]
             if not atacantes: atacantes = time.elenco
 
-            autores = []
             for _ in range(gols):
                 autor = random.choice(atacantes)
-                autores.append(autor.nome)
-
-            print(f"   ⚽ {time.nome}: {', '.join(autores)}")
+                lista_nomes.append(autor.nome)
+        return lista_nomes
 
     def atualizar_tabela(self, jogo):
         c_casa = self.tabela[jogo.time_casa.nome]
@@ -128,10 +137,21 @@ class Campeonato:
             c_vis.pontos += 1
             c_vis.empates += 1
 
+    def mostrar_resumo_usuario(self, rodada):
+        classificacao = sorted(self.tabela.values(), key=lambda p: (p.pontos, p.vitorias, p.saldo_gols()), reverse=True)
+
+        posicao = 0
+        meu_pontos = 0
+        for i, classif in enumerate(classificacao):
+            if classif.time == self.time_do_usuario:
+                posicao = i + 1
+                meu_pontos = classif.pontos
+                break
+
+        print(f"Resumo Rodada {rodada}: Seu time está em {posicao}º ({meu_pontos} pts)")
+
     def processar_financas(self):
-        print("\n--- SEGUNDA-FEIRA: PAGAMENTO DE SALÁRIOS ---")
+        print("\n--- PAGAMENTO DE SALÁRIOS ---")
         for time in self.times:
             folha = time.folha_salarial
             time.saldo_em_caixa -= folha
-            if time == self.time_do_usuario:
-                print(f"   --> Você pagou R$ {folha:,.2f} em salários.")

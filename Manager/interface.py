@@ -88,7 +88,6 @@ class Interface:
         for widget in self.aba_tabela.winfo_children():
             widget.destroy()
 
-        # AQUI ESTAVA O ERRO: Removido o .posicoes
         tabela_atual = self.campeonato.tabela
         classificacao = sorted(tabela_atual.values(), key=lambda p: (p.pontos, p.vitorias, p.saldo_gols()),
                                reverse=True)
@@ -101,8 +100,9 @@ class Interface:
         topo.pack(anchor="w", padx=10)
 
         for pos in classificacao:
+            cor = "yellow" if pos.time == self.campeonato.time_do_usuario else "white"
             txt = f"{pos.time.nome:<20} {pos.pontos:<5} {pos.vitorias:<5} {pos.empates:<5} {pos.derrotas:<5} {pos.saldo_gols():<5}"
-            lbl = ctk.CTkLabel(scroll_tabela, text=txt, font=("Courier", 12), anchor="w")
+            lbl = ctk.CTkLabel(scroll_tabela, text=txt, font=("Courier", 12), text_color=cor, anchor="w")
             lbl.pack(anchor="w", padx=10)
 
     def montar_aba_calendario(self):
@@ -117,20 +117,43 @@ class Interface:
         scroll_jogos = ctk.CTkScrollableFrame(self.aba_jogos)
         scroll_jogos.pack(fill="both", expand=True)
 
-        jogos_hoje = self.campeonato.get_jogos_de_hoje()
+        jogos_hoje, num_rodada = self.campeonato.get_jogos_de_hoje()
 
         if not jogos_hoje:
-            lbl = ctk.CTkLabel(scroll_jogos, text="Nenhum jogo agendado para hoje.")
+            lbl = ctk.CTkLabel(scroll_jogos, text="Treino e Recuperação (Sem jogos hoje).")
             lbl.pack(pady=20)
         else:
+            lbl_rodada = ctk.CTkLabel(scroll_jogos, text=f"--- RODADA {num_rodada} ---", font=("Arial", 16, "bold"))
+            lbl_rodada.pack(pady=5)
+
             for jogo in jogos_hoje:
+                frame_jogo = ctk.CTkFrame(scroll_jogos, fg_color="transparent")
+                frame_jogo.pack(fill="x", pady=5, padx=10)
+
+                cor_placar = "white"
+                if jogo.time_casa == self.campeonato.time_do_usuario or jogo.time_visitante == self.campeonato.time_do_usuario:
+                    cor_placar = "#00FFFF"
+
                 if jogo.foi_jogado:
-                    txt = f"{jogo.time_casa.nome} {jogo.placar_casa} x {jogo.placar_visitante} {jogo.time_visitante.nome}"
+                    txt_placar = f"{jogo.time_casa.nome} {jogo.placar_casa} x {jogo.placar_visitante} {jogo.time_visitante.nome}"
+                    lbl_placar = ctk.CTkLabel(frame_jogo, text=txt_placar, font=("Arial", 14, "bold"),
+                                              text_color=cor_placar)
+                    lbl_placar.pack()
+
+                    todos_gols = []
+                    if jogo.autores_casa:
+                        todos_gols.append(f"{jogo.time_casa.nome}: {', '.join(jogo.autores_casa)}")
+                    if jogo.autores_visitante:
+                        todos_gols.append(f"{jogo.time_visitante.nome}: {', '.join(jogo.autores_visitante)}")
+
+                    if todos_gols:
+                        lbl_gols = ctk.CTkLabel(frame_jogo, text=" | ".join(todos_gols), font=("Arial", 11),
+                                                text_color="gray")
+                        lbl_gols.pack()
                 else:
                     txt = f"{jogo.time_casa.nome} x {jogo.time_visitante.nome}"
-
-                lbl = ctk.CTkLabel(scroll_jogos, text=txt, font=("Arial", 14))
-                lbl.pack(pady=5)
+                    lbl = ctk.CTkLabel(frame_jogo, text=txt, font=("Arial", 14), text_color=cor_placar)
+                    lbl.pack()
 
     def montar_aba_mercado(self):
         for widget in self.aba_mercado.winfo_children():
