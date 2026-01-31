@@ -1,115 +1,137 @@
-from datetime import date, timedelta
 import random
-from tabela import Tabela
+from datetime import date, timedelta
 
 
 class Jogo:
-    def __init__(self, time_casa, time_visitante, rodada, data_jogo):
+    def __init__(self, time_casa, time_visitante):
         self.time_casa = time_casa
         self.time_visitante = time_visitante
-        self.rodada = rodada
-        self.data_jogo = data_jogo
         self.placar_casa = 0
         self.placar_visitante = 0
         self.foi_jogado = False
+
+
+class ClassificacaoTime:
+    def __init__(self, time):
+        self.time = time
+        self.pontos = 0
+        self.vitorias = 0
+        self.empates = 0
+        self.derrotas = 0
+        self.gols_pro = 0
+        self.gols_contra = 0
+
+    def saldo_gols(self):
+        return self.gols_pro - self.gols_contra
 
 
 class Campeonato:
     def __init__(self, times, ano):
         self.times = times
         self.ano = ano
-        self.tabela = Tabela(times)
-        self.jogos = []
-
-        self.time_do_usuario = next((t for t in times if t.nome == "Flamengo"), times[0])
-
-        self.data_atual = date(ano, 1, 1)
+        self.rodadas = []
+        self.tabela = {time.nome: ClassificacaoTime(time) for time in times}
+        self.data_inicial = date(ano, 1, 15)
+        self.data_atual = self.data_inicial
+        self.time_do_usuario = random.choice(times)
 
         self.gerar_calendario()
 
     def gerar_calendario(self):
-        random.shuffle(self.times)
+        self.rodadas = []
         num_times = len(self.times)
-        total_rodadas = (num_times - 1) * 2
 
-        jogos_por_rodada = num_times // 2
+        for _ in range(38):
+            random.shuffle(self.times)
+            jogos_desta_rodada = []
 
-        mapa_times = self.times[:]
+            for i in range(0, num_times, 2):
+                jogo = Jogo(self.times[i], self.times[i + 1])
+                jogos_desta_rodada.append(jogo)
 
-        data_rodada = self.data_atual
-
-        for rodada in range(1, total_rodadas + 1):
-            while data_rodada.weekday() != 2 and data_rodada.weekday() != 6:
-                data_rodada += timedelta(days=1)
-
-            if rodada <= num_times - 1:
-                mandantes = mapa_times[:jogos_por_rodada]
-                visitantes = mapa_times[jogos_por_rodada:]
-                visitantes.reverse()
-            else:
-                mandantes = mapa_times[jogos_por_rodada:]
-                mandantes.reverse()
-                visitantes = mapa_times[:jogos_por_rodada]
-
-            for i in range(jogos_por_rodada):
-                if rodada <= num_times - 1:
-                    jogo = Jogo(mandantes[i], visitantes[i], rodada, data_rodada)
-                else:
-                    jogo = Jogo(visitantes[i], mandantes[i], rodada, data_rodada)
-
-                self.jogos.append(jogo)
-
-            mapa_times = [mapa_times[0]] + [mapa_times[-1]] + mapa_times[1:-1]
-
-            data_rodada += timedelta(days=1)
+            self.rodadas.append(jogos_desta_rodada)
 
     def get_jogos_de_hoje(self):
-        return [j for j in self.jogos if j.data_jogo == self.data_atual]
+        dias_passados = (self.data_atual - self.data_inicial).days
+        indice_rodada = dias_passados // 3
+
+        if 0 <= indice_rodada < len(self.rodadas):
+            return self.rodadas[indice_rodada]
+        return []
 
     def avancar_um_dia(self):
-        self.simular_jogos_de_hoje()
+        jogos = self.get_jogos_de_hoje()
+
+        if jogos and not jogos[0].foi_jogado:
+            print(f"\n--- RESULTADOS DA RODADA ({self.data_atual.strftime('%d/%m')}) ---")
+            for jogo in jogos:
+                self.simular_partida(jogo)
+        else:
+            print(f"Dia {self.data_atual.strftime('%d/%m')}: Treino e descanso. Nenhum jogo hoje.")
 
         if self.data_atual.weekday() == 0:
-            print(f"--- DIA DE PAGAMENTO: {self.data_atual.strftime('%d/%m/%Y')} ---")
-            for time in self.times:
-                custo_semanal = time.folha_salarial
-                time.saldo_em_caixa -= custo_semanal
-
-                if time == self.time_do_usuario:
-                    print(
-                        f"💰 Salários pagos! Valor: R$ {custo_semanal:,.2f}. Saldo restante: R$ {time.saldo_em_caixa:,.2f}")
+            self.processar_financas()
 
         self.data_atual += timedelta(days=1)
 
-    def simular_jogos_de_hoje(self):
-        jogos_hoje = self.get_jogos_de_hoje()
+    def simular_partida(self, jogo):
+        chance_casa = jogo.time_casa.forca_ataque
+        chance_visitante = jogo.time_visitante.forca_ataque
 
-        for jogo in jogos_hoje:
-            forca_casa = jogo.time_casa.forca_ataque + jogo.time_casa.forca_defesa
-            forca_visitante = jogo.time_visitante.forca_ataque + jogo.time_visitante.forca_defesa
+        jogo.placar_casa = int(random.triangular(0, 4, chance_casa / 20))
+        jogo.placar_visitante = int(random.triangular(0, 4, chance_visitante / 20))
+        jogo.foi_jogado = True
 
-            fator_casa = 1.10
-            chance_casa = (forca_casa * fator_casa) / ((forca_casa * fator_casa) + forca_visitante)
+        print(f"FIM: {jogo.time_casa.nome} {jogo.placar_casa} x {jogo.placar_visitante} {jogo.time_visitante.nome}")
 
-            aleatorio = random.random()
+        self.narrar_gols(jogo.time_casa, jogo.placar_casa)
+        self.narrar_gols(jogo.time_visitante, jogo.placar_visitante)
 
-            if aleatorio < chance_casa:
-                jogo.placar_casa = random.randint(1, 3)
-                jogo.placar_visitante = random.randint(0, 1)
-            elif aleatorio < chance_casa + 0.25:
-                gols = random.randint(0, 2)
-                jogo.placar_casa = gols
-                jogo.placar_visitante = gols
-            else:
-                jogo.placar_casa = random.randint(0, 1)
-                jogo.placar_visitante = random.randint(1, 3)
+        self.atualizar_tabela(jogo)
 
-            jogo.foi_jogado = True
-
-            self.tabela.atualizar(jogo.time_casa, jogo.placar_casa, jogo.placar_visitante)
-            self.tabela.atualizar(jogo.time_visitante, jogo.placar_visitante, jogo.placar_casa)
-
+        if jogo.time_casa == self.time_do_usuario:
             renda, publico = jogo.time_casa.receber_bilheteria()
+            print(f"   --> Bilheteria do seu time: R$ {renda:,.2f} ({publico} torcedores)")
 
-            if jogo.time_casa == self.time_do_usuario:
-                print(f"🏟️ JOGO EM CASA! Público: {publico} | Renda: R$ {renda:,.2f} entrou no caixa.")
+    def narrar_gols(self, time, gols):
+        if gols > 0:
+            atacantes = [j for j in time.elenco if "Atacante" in j.funcao or "Meio" in j.funcao]
+            if not atacantes: atacantes = time.elenco
+
+            autores = []
+            for _ in range(gols):
+                autor = random.choice(atacantes)
+                autores.append(autor.nome)
+
+            print(f"   ⚽ {time.nome}: {', '.join(autores)}")
+
+    def atualizar_tabela(self, jogo):
+        c_casa = self.tabela[jogo.time_casa.nome]
+        c_casa.gols_pro += jogo.placar_casa
+        c_casa.gols_contra += jogo.placar_visitante
+
+        c_vis = self.tabela[jogo.time_visitante.nome]
+        c_vis.gols_pro += jogo.placar_visitante
+        c_vis.gols_contra += jogo.placar_casa
+
+        if jogo.placar_casa > jogo.placar_visitante:
+            c_casa.pontos += 3
+            c_casa.vitorias += 1
+            c_vis.derrotas += 1
+        elif jogo.placar_visitante > jogo.placar_casa:
+            c_vis.pontos += 3
+            c_vis.vitorias += 1
+            c_casa.derrotas += 1
+        else:
+            c_casa.pontos += 1
+            c_casa.empates += 1
+            c_vis.pontos += 1
+            c_vis.empates += 1
+
+    def processar_financas(self):
+        print("\n--- SEGUNDA-FEIRA: PAGAMENTO DE SALÁRIOS ---")
+        for time in self.times:
+            folha = time.folha_salarial
+            time.saldo_em_caixa -= folha
+            if time == self.time_do_usuario:
+                print(f"   --> Você pagou R$ {folha:,.2f} em salários.")

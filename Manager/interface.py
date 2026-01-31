@@ -88,7 +88,8 @@ class Interface:
         for widget in self.aba_tabela.winfo_children():
             widget.destroy()
 
-        tabela_atual = self.campeonato.tabela.posicoes
+        # AQUI ESTAVA O ERRO: Removido o .posicoes
+        tabela_atual = self.campeonato.tabela
         classificacao = sorted(tabela_atual.values(), key=lambda p: (p.pontos, p.vitorias, p.saldo_gols()),
                                reverse=True)
 
