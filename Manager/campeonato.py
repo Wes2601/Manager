@@ -11,6 +11,8 @@ class Jogo:
         self.foi_jogado = False
         self.autores_casa = []
         self.autores_visitante = []
+        self.lesionados = []
+        self.cartoes = []
 
 
 class ClassificacaoTime:
@@ -41,17 +43,38 @@ class Campeonato:
 
     def gerar_calendario(self):
         self.rodadas = []
-        num_times = len(self.times)
+        times_copia = self.times[:]
+        random.shuffle(times_copia)
 
-        for _ in range(38):
-            random.shuffle(self.times)
+        num_times = len(times_copia)
+        rodadas_turno = []
+
+        for _ in range(num_times - 1):
             jogos_desta_rodada = []
 
-            for i in range(0, num_times, 2):
-                jogo = Jogo(self.times[i], self.times[i + 1])
+            for i in range(num_times // 2):
+                time1 = times_copia[i]
+                time2 = times_copia[num_times - 1 - i]
+
+                if _ % 2 == 0:
+                    jogo = Jogo(time1, time2)
+                else:
+                    jogo = Jogo(time2, time1)
+
                 jogos_desta_rodada.append(jogo)
 
-            self.rodadas.append(jogos_desta_rodada)
+            rodadas_turno.append(jogos_desta_rodada)
+
+            times_copia.insert(1, times_copia.pop())
+
+        rodadas_returno = []
+        for rodada_turno in rodadas_turno:
+            jogos_volta = []
+            for jogo_ida in rodada_turno:
+                jogos_volta.append(Jogo(jogo_ida.time_visitante, jogo_ida.time_casa))
+            rodadas_returno.append(jogos_volta)
+
+        self.rodadas = rodadas_turno + rodadas_returno
 
     def get_jogos_de_hoje(self):
         dias_passados = (self.data_atual - self.data_inicial).days
@@ -62,6 +85,8 @@ class Campeonato:
         return [], 0
 
     def avancar_um_dia(self):
+        self.tratar_lesoes_globais()
+
         jogos, numero_rodada = self.get_jogos_de_hoje()
 
         if jogos and not jogos[0].foi_jogado:
@@ -80,7 +105,16 @@ class Campeonato:
 
         self.data_atual += timedelta(days=1)
 
+    def tratar_lesoes_globais(self):
+        for time in self.times:
+            for jogador in time.elenco:
+                if jogador.recuperacao > 0:
+                    jogador.recuperacao -= 1
+
     def simular_partida(self, jogo):
+        suspensos_casa = [j for j in jogo.time_casa.elenco if j.suspenso]
+        suspensos_visitante = [j for j in jogo.time_visitante.elenco if j.suspenso]
+
         chance_casa = jogo.time_casa.forca_ataque
         chance_visitante = jogo.time_visitante.forca_ataque
 
@@ -91,7 +125,13 @@ class Campeonato:
         jogo.autores_casa = self.gerar_artilheiros(jogo.time_casa, jogo.placar_casa)
         jogo.autores_visitante = self.gerar_artilheiros(jogo.time_visitante, jogo.placar_visitante)
 
+        self.aplicar_lesoes_jogo(jogo)
+        self.aplicar_cartoes_jogo(jogo)
+
         self.atualizar_tabela(jogo)
+
+        for j in suspensos_casa: j.suspenso = False
+        for j in suspensos_visitante: j.suspenso = False
 
         prefixo = "   "
         if jogo.time_casa == self.time_do_usuario or jogo.time_visitante == self.time_do_usuario:
@@ -99,14 +139,46 @@ class Campeonato:
 
         print(f"{prefixo}{jogo.time_casa.nome} {jogo.placar_casa} x {jogo.placar_visitante} {jogo.time_visitante.nome}")
 
+        infos_extras = []
+        if jogo.lesionados: infos_extras.append(f"🚑 Lesão: {', '.join(jogo.lesionados)}")
+        if jogo.cartoes: infos_extras.append(f"🟥/🟨: {', '.join(jogo.cartoes)}")
+
+        if (jogo.time_casa == self.time_do_usuario or jogo.time_visitante == self.time_do_usuario) and infos_extras:
+            print(f"      {' | '.join(infos_extras)}")
+
         if jogo.time_casa == self.time_do_usuario:
             renda, publico = jogo.time_casa.receber_bilheteria()
             print(f"      Bilheteria: R$ {renda:,.2f}")
 
+    def aplicar_lesoes_jogo(self, jogo):
+        todos = jogo.time_casa.elenco + jogo.time_visitante.elenco
+        for jogador in todos:
+            if not jogador.esta_lesionado and not jogador.suspenso:
+                if random.random() < 0.01:
+                    dias = random.randint(3, 14)
+                    jogador.recuperacao = dias
+                    jogo.lesionados.append(f"{jogador.nome} ({dias}d)")
+
+    def aplicar_cartoes_jogo(self, jogo):
+        todos = jogo.time_casa.elenco + jogo.time_visitante.elenco
+        for jogador in todos:
+            if not jogador.esta_lesionado and not jogador.suspenso:
+                if random.random() < 0.05:
+                    jogador.cartoes_amarelos += 1
+                    if jogador.cartoes_amarelos >= 3:
+                        jogador.suspenso = True
+                        jogador.cartoes_amarelos = 0
+                        jogo.cartoes.append(f"{jogador.nome} (3º Amarelo)")
+
+                elif random.random() < 0.005:
+                    jogador.suspenso = True
+                    jogo.cartoes.append(f"{jogador.nome} (Vermelho)")
+
     def gerar_artilheiros(self, time, gols):
         lista_nomes = []
         if gols > 0:
-            atacantes = [j for j in time.elenco if "Atacante" in j.funcao or "Meio" in j.funcao]
+            atacantes = [j for j in time.elenco if
+                         ("Atacante" in j.funcao or "Meio" in j.funcao) and not j.esta_lesionado and not j.suspenso]
             if not atacantes: atacantes = time.elenco
 
             for _ in range(gols):

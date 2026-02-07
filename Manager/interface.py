@@ -70,7 +70,23 @@ class Interface:
             txt_condicao = f"{jogador.condicao_fisica}%"
             texto = f"{jogador.funcao} | {jogador.nome} | Pot: {jogador.potencial} | Cond: {txt_condicao}"
 
-            cor_texto = "red" if jogador.esta_lesionado else ("gray10", "gray90")
+            cor_texto = "gray90"
+            extras = []
+
+            if jogador.esta_lesionado:
+                cor_texto = "#FF5555"  # Vermelho claro
+                extras.append(f"🚑 {jogador.recuperacao}d")
+
+            if jogador.suspenso:
+                cor_texto = "#FF0000"  # Vermelho sangue
+                extras.append("🟥 SUSPENSO")
+            elif jogador.cartoes_amarelos > 0:
+                # Mostra cartões amarelos (ex: 🟨 2)
+                amarelos = "🟨" * jogador.cartoes_amarelos
+                extras.append(amarelos)
+
+            if extras:
+                texto += " [" + " ".join(extras) + "]"
 
             btn = ctk.CTkButton(
                 scroll_elenco,
@@ -140,16 +156,17 @@ class Interface:
                                               text_color=cor_placar)
                     lbl_placar.pack()
 
-                    todos_gols = []
-                    if jogo.autores_casa:
-                        todos_gols.append(f"{jogo.time_casa.nome}: {', '.join(jogo.autores_casa)}")
-                    if jogo.autores_visitante:
-                        todos_gols.append(f"{jogo.time_visitante.nome}: {', '.join(jogo.autores_visitante)}")
+                    detalhes = []
+                    if jogo.autores_casa: detalhes.append(f"{jogo.time_casa.nome}: {', '.join(jogo.autores_casa)}")
+                    if jogo.autores_visitante: detalhes.append(
+                        f"{jogo.time_visitante.nome}: {', '.join(jogo.autores_visitante)}")
+                    if jogo.lesionados: detalhes.append(f"🚑: {', '.join(jogo.lesionados)}")
+                    if jogo.cartoes: detalhes.append(f"🟥: {', '.join(jogo.cartoes)}")  # Mostra expulsos/suspensos
 
-                    if todos_gols:
-                        lbl_gols = ctk.CTkLabel(frame_jogo, text=" | ".join(todos_gols), font=("Arial", 11),
-                                                text_color="gray")
-                        lbl_gols.pack()
+                    if detalhes:
+                        lbl_detalhes = ctk.CTkLabel(frame_jogo, text=" | ".join(detalhes), font=("Arial", 11),
+                                                    text_color="gray")
+                        lbl_detalhes.pack()
                 else:
                     txt = f"{jogo.time_casa.nome} x {jogo.time_visitante.nome}"
                     lbl = ctk.CTkLabel(frame_jogo, text=txt, font=("Arial", 14), text_color=cor_placar)
@@ -181,11 +198,20 @@ class Interface:
             frame_linha.pack(fill="x", pady=2, padx=5)
 
             txt = f"{jogador.nome} ({jogador.funcao}) - Pot: {jogador.potencial} | R$ {jogador.valor_mercado:,.2f}"
+
+            avisos = []
+            if jogador.esta_lesionado: avisos.append("LESIONADO")
+            if jogador.suspenso: avisos.append("SUSPENSO")
+
+            if avisos: txt += f" [{' '.join(avisos)}]"
+
             lbl = ctk.CTkLabel(frame_linha, text=txt, font=("Arial", 12), anchor="w")
             lbl.pack(side="left", padx=10)
 
-            cor_btn = "green" if saldo >= jogador.valor_mercado else "gray"
-            estado_btn = "normal" if saldo >= jogador.valor_mercado else "disabled"
+            pode_comprar = (saldo >= jogador.valor_mercado) and (not jogador.esta_lesionado) and (not jogador.suspenso)
+
+            cor_btn = "green" if pode_comprar else "gray"
+            estado_btn = "normal" if pode_comprar else "disabled"
 
             btn = ctk.CTkButton(
                 frame_linha,
@@ -239,6 +265,21 @@ class Interface:
         lbl_funcao = ctk.CTkLabel(janela, text=f"{jogador.funcao} | {jogador.nacionalidade}", text_color="gray")
         lbl_funcao.pack(pady=0)
 
+        # Avisos de status
+        if jogador.esta_lesionado:
+            lbl_lesao = ctk.CTkLabel(janela, text=f"🚑 LESIONADO (Retorno: {jogador.recuperacao} dias)",
+                                     text_color="red", font=("Arial", 14, "bold"))
+            lbl_lesao.pack(pady=2)
+
+        if jogador.suspenso:
+            lbl_susp = ctk.CTkLabel(janela, text="🟥 SUSPENSO (Próximo jogo)", text_color="red",
+                                    font=("Arial", 14, "bold"))
+            lbl_susp.pack(pady=2)
+        elif jogador.cartoes_amarelos > 0:
+            lbl_amarelo = ctk.CTkLabel(janela, text=f"🟨 Cartões Amarelos: {jogador.cartoes_amarelos}/3",
+                                       text_color="yellow", font=("Arial", 12))
+            lbl_amarelo.pack(pady=2)
+
         frame_infos = ctk.CTkFrame(janela)
         frame_infos.pack(pady=20, padx=20, fill="x")
 
@@ -267,10 +308,16 @@ class Interface:
                                  text_color="#00FF00")
         lbl_valor.pack()
 
+        pode_vender = not (jogador.esta_lesionado or jogador.suspenso)
+        estado_venda = "normal" if pode_vender else "disabled"
+        cor_venda = "red" if pode_vender else "gray"
+        msg_venda = "VENDER JOGADOR" if pode_vender else "INDISPONÍVEL (DM/Suspenso)"
+
         btn_vender = ctk.CTkButton(
             janela,
-            text="VENDER JOGADOR",
-            fg_color="red",
+            text=msg_venda,
+            fg_color=cor_venda,
+            state=estado_venda,
             hover_color="darkred",
             command=lambda: [self.vender_jogador(jogador), janela.destroy()]
         )
@@ -285,7 +332,7 @@ class Interface:
 
             meu_time.saldo_em_caixa += valor_venda
 
-            print(f"💰 VENDIDO! {jogador.nome} saiu por R$ {valor_venda:,.2f}")
+            print(f"VENDIDO! {jogador.nome} saiu por R$ {valor_venda:,.2f}")
 
             self.atualizar_interface()
 

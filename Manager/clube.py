@@ -29,16 +29,18 @@ class Time:
 
     @property
     def forca_ataque(self):
-        atacantes = [j.potencial for j in self.elenco if "Atacante" in j.funcao or "Meio" in j.funcao]
-        if not atacantes: return 50
+        atacantes = [j.potencial for j in self.elenco if
+                     ("Atacante" in j.funcao or "Meio" in j.funcao) and not j.esta_lesionado and not j.suspenso]
+        if not atacantes: return 20
         atacantes.sort(reverse=True)
         top_5 = atacantes[:5]
         return sum(top_5) / len(top_5)
 
     @property
     def forca_defesa(self):
-        defensores = [j.potencial for j in self.elenco if "Defensor" in j.funcao or "Goleiro" in j.funcao]
-        if not defensores: return 50
+        defensores = [j.potencial for j in self.elenco if
+                      ("Defensor" in j.funcao or "Goleiro" in j.funcao) and not j.esta_lesionado and not j.suspenso]
+        if not defensores: return 20
         defensores.sort(reverse=True)
         top_5 = defensores[:5]
         return sum(top_5) / len(top_5)
