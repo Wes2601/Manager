@@ -1,31 +1,41 @@
 import customtkinter as ctk
 from campeonato import Campeonato
 from main import criar_times_da_liga
+from view_detalhes import TelaDetalhesJogador
+from sistema_dados import salvar_jogo, carregar_jogo, existe_save
+
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("blue")
 
 
-class Interface:
+class Interface(ctk.CTk):
     def __init__(self):
-        self.root = ctk.CTk()
-        self.root.title("Python Football Manager 2026")
-        self.root.geometry("1000x700")
+        super().__init__()
 
-        ctk.set_appearance_mode("dark")
-        ctk.set_default_color_theme("blue")
+        self.title("Python Football Manager 2026")
+        self.geometry("1000x700")
+
+        self.campeonato = None
 
         self.tela_inicial()
 
     def tela_inicial(self):
-        self.frame_inicial = ctk.CTkFrame(self.root)
+        self.frame_inicial = ctk.CTkFrame(self)
         self.frame_inicial.pack(fill="both", expand=True)
 
         lbl_titulo = ctk.CTkLabel(self.frame_inicial, text="Python Football Manager", font=("Arial", 32, "bold"))
         lbl_titulo.pack(pady=50)
 
-        btn_novo_jogo = ctk.CTkButton(self.frame_inicial, text="Iniciar Novo Jogo", command=self.iniciar_jogo,
+        btn_novo_jogo = ctk.CTkButton(self.frame_inicial, text="Iniciar Novo Jogo", command=self.iniciar_novo_jogo,
                                       width=200, height=50)
         btn_novo_jogo.pack(pady=20)
 
-    def iniciar_jogo(self):
+        if existe_save():
+            btn_carregar = ctk.CTkButton(self.frame_inicial, text="Continuar Jogo Salvo", fg_color="green",
+                                         command=self.carregar_jogo_existente, width=200, height=50)
+            btn_carregar.pack(pady=10)
+
+    def iniciar_novo_jogo(self):
         times = criar_times_da_liga()
         self.campeonato = Campeonato(times, 2025)
 
@@ -34,19 +44,67 @@ class Interface:
         self.frame_inicial.destroy()
         self.abrir_dashboard()
 
+    def carregar_jogo_existente(self):
+        self.campeonato = carregar_jogo()
+        if self.campeonato:
+            print(f"Save carregado! Técnico do: {self.campeonato.time_do_usuario.nome}")
+            self.frame_inicial.destroy()
+            self.abrir_dashboard()
+        else:
+            print("Erro ao carregar save.")
+
     def abrir_dashboard(self):
-        self.abas = ctk.CTkTabview(self.root)
-        self.abas.pack(fill="both", expand=True, padx=10, pady=10)
+        self.frame_dashboard = ctk.CTkFrame(self)
+        self.frame_dashboard.pack(fill="both", expand=True, padx=10, pady=10)
+
+        self.label_info = ctk.CTkLabel(self.frame_dashboard, text="", font=("Arial", 24, "bold"))
+        self.label_info.pack(pady=10)
+
+        self.abas = ctk.CTkTabview(self.frame_dashboard)
+        self.abas.pack(fill="both", expand=True, padx=10, pady=5)
 
         self.aba_elenco = self.abas.add("Meu Elenco")
         self.aba_tabela = self.abas.add("Classificação")
         self.aba_jogos = self.abas.add("Calendário")
         self.aba_mercado = self.abas.add("Mercado")
 
+        self.atualizar_interface()
+
+        self.btn_avancar = ctk.CTkButton(
+            self.frame_dashboard,
+            text="Avançar Dia",
+            fg_color="green",
+            height=50,
+            font=("Arial", 16, "bold"),
+            command=self.acao_avancar_dia
+        )
+        self.btn_avancar.pack(pady=10, padx=20, fill="x")
+
+        btn_salvar = ctk.CTkButton(
+            self.frame_dashboard,
+            text="Salvar e Sair",
+            fg_color="red",
+            command=self.acao_salvar_sair
+        )
+        btn_salvar.pack(pady=10, padx=20, fill="x")
+
+    def acao_salvar_sair(self):
+        salvar_jogo(self.campeonato)
+        self.destroy()
+
+    def acao_avancar_dia(self):
+        self.campeonato.avancar_um_dia()
+        self.atualizar_interface()
+
+    def atualizar_interface(self):
         self.montar_aba_elenco()
         self.montar_aba_tabela()
         self.montar_aba_calendario()
         self.montar_aba_mercado()
+
+        meu_time = self.campeonato.time_do_usuario
+        texto_info = f"{meu_time.nome} | R$ {meu_time.saldo_em_caixa:,.2f} | {self.campeonato.data_atual.strftime('%d/%m/%Y')}"
+        self.label_info.configure(text=texto_info)
 
     def montar_aba_elenco(self):
         for widget in self.aba_elenco.winfo_children():
@@ -74,14 +132,13 @@ class Interface:
             extras = []
 
             if jogador.esta_lesionado:
-                cor_texto = "#FF5555"  # Vermelho claro
+                cor_texto = "#FF5555"
                 extras.append(f"🚑 {jogador.recuperacao}d")
 
             if jogador.suspenso:
-                cor_texto = "#FF0000"  # Vermelho sangue
+                cor_texto = "#FF0000"
                 extras.append("🟥 SUSPENSO")
             elif jogador.cartoes_amarelos > 0:
-                # Mostra cartões amarelos (ex: 🟨 2)
                 amarelos = "🟨" * jogador.cartoes_amarelos
                 extras.append(amarelos)
 
@@ -126,9 +183,8 @@ class Interface:
             widget.destroy()
 
         data_str = self.campeonato.data_atual.strftime("%d/%m/%Y")
-        btn_avancar = ctk.CTkButton(self.aba_jogos, text=f"Avançar Dia ({data_str})", command=self.avancar_dia,
-                                    fg_color="green")
-        btn_avancar.pack(pady=10)
+        lbl_data = ctk.CTkLabel(self.aba_jogos, text=f"Data Atual: {data_str}", font=("Arial", 16, "bold"))
+        lbl_data.pack(pady=5)
 
         scroll_jogos = ctk.CTkScrollableFrame(self.aba_jogos)
         scroll_jogos.pack(fill="both", expand=True)
@@ -161,7 +217,7 @@ class Interface:
                     if jogo.autores_visitante: detalhes.append(
                         f"{jogo.time_visitante.nome}: {', '.join(jogo.autores_visitante)}")
                     if jogo.lesionados: detalhes.append(f"🚑: {', '.join(jogo.lesionados)}")
-                    if jogo.cartoes: detalhes.append(f"🟥: {', '.join(jogo.cartoes)}")  # Mostra expulsos/suspensos
+                    if jogo.cartoes: detalhes.append(f"🟥: {', '.join(jogo.cartoes)}")
 
                     if detalhes:
                         lbl_detalhes = ctk.CTkLabel(frame_jogo, text=" | ".join(detalhes), font=("Arial", 11),
@@ -242,101 +298,10 @@ class Interface:
 
             self.atualizar_interface()
 
-    def avancar_dia(self):
-        self.campeonato.avancar_um_dia()
-        self.atualizar_interface()
-
-    def atualizar_interface(self):
-        self.montar_aba_elenco()
-        self.montar_aba_tabela()
-        self.montar_aba_calendario()
-        self.montar_aba_mercado()
-
     def abrir_detalhes(self, jogador):
-        janela = ctk.CTkToplevel(self.root)
-        janela.title(f"Detalhes: {jogador.nome}")
-        janela.geometry("400x450")
-
-        janela.attributes("-topmost", True)
-
-        lbl_nome = ctk.CTkLabel(janela, text=jogador.nome, font=("Arial", 22, "bold"))
-        lbl_nome.pack(pady=(20, 5))
-
-        lbl_funcao = ctk.CTkLabel(janela, text=f"{jogador.funcao} | {jogador.nacionalidade}", text_color="gray")
-        lbl_funcao.pack(pady=0)
-
-        # Avisos de status
-        if jogador.esta_lesionado:
-            lbl_lesao = ctk.CTkLabel(janela, text=f"🚑 LESIONADO (Retorno: {jogador.recuperacao} dias)",
-                                     text_color="red", font=("Arial", 14, "bold"))
-            lbl_lesao.pack(pady=2)
-
-        if jogador.suspenso:
-            lbl_susp = ctk.CTkLabel(janela, text="🟥 SUSPENSO (Próximo jogo)", text_color="red",
-                                    font=("Arial", 14, "bold"))
-            lbl_susp.pack(pady=2)
-        elif jogador.cartoes_amarelos > 0:
-            lbl_amarelo = ctk.CTkLabel(janela, text=f"🟨 Cartões Amarelos: {jogador.cartoes_amarelos}/3",
-                                       text_color="yellow", font=("Arial", 12))
-            lbl_amarelo.pack(pady=2)
-
-        frame_infos = ctk.CTkFrame(janela)
-        frame_infos.pack(pady=20, padx=20, fill="x")
-
-        def criar_linha(titulo, valor, cor="white"):
-            f = ctk.CTkFrame(frame_infos, fg_color="transparent")
-            f.pack(fill="x", pady=5, padx=10)
-            ctk.CTkLabel(f, text=titulo, text_color="gray").pack(side="left")
-            ctk.CTkLabel(f, text=valor, text_color=cor, font=("Arial", 12, "bold")).pack(side="right")
-
-        idade = 2025 - jogador.data_nascimento.year
-
-        criar_linha("Idade:", f"{idade} anos")
-        criar_linha("Potencial:", f"{jogador.potencial}")
-        criar_linha("Condição Física:", f"{jogador.condicao_fisica}%",
-                    "green" if jogador.condicao_fisica > 80 else "red")
-
-        ctk.CTkFrame(janela, height=2, fg_color="gray30").pack(fill="x", padx=20, pady=10)
-
-        lbl_financas = ctk.CTkLabel(janela, text="FINANÇAS", font=("Arial", 14, "bold"))
-        lbl_financas.pack(pady=5)
-
-        lbl_salario = ctk.CTkLabel(janela, text=f"Salário: R$ {jogador.salario:,.2f} / semana", text_color="yellow")
-        lbl_salario.pack()
-
-        lbl_valor = ctk.CTkLabel(janela, text=f"Valor de Mercado: R$ {jogador.valor_mercado:,.2f}",
-                                 text_color="#00FF00")
-        lbl_valor.pack()
-
-        pode_vender = not (jogador.esta_lesionado or jogador.suspenso)
-        estado_venda = "normal" if pode_vender else "disabled"
-        cor_venda = "red" if pode_vender else "gray"
-        msg_venda = "VENDER JOGADOR" if pode_vender else "INDISPONÍVEL (DM/Suspenso)"
-
-        btn_vender = ctk.CTkButton(
-            janela,
-            text=msg_venda,
-            fg_color=cor_venda,
-            state=estado_venda,
-            hover_color="darkred",
-            command=lambda: [self.vender_jogador(jogador), janela.destroy()]
-        )
-        btn_vender.pack(pady=30, padx=40, fill="x")
-
-    def vender_jogador(self, jogador):
-        meu_time = self.campeonato.time_do_usuario
-        valor_venda = jogador.valor_mercado
-
-        if jogador in meu_time.elenco:
-            meu_time.elenco.remove(jogador)
-
-            meu_time.saldo_em_caixa += valor_venda
-
-            print(f"VENDIDO! {jogador.nome} saiu por R$ {valor_venda:,.2f}")
-
-            self.atualizar_interface()
+        TelaDetalhesJogador(self, jogador)
 
 
 if __name__ == "__main__":
     app = Interface()
-    app.root.mainloop()
+    app.mainloop()

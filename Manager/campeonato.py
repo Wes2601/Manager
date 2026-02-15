@@ -30,14 +30,15 @@ class ClassificacaoTime:
 
 
 class Campeonato:
-    def __init__(self, times, ano):
+    def __init__(self, times, ano, time_usuario):
         self.times = times
         self.ano = ano
         self.rodadas = []
         self.tabela = {time.nome: ClassificacaoTime(time) for time in times}
         self.data_inicial = date(ano, 1, 15)
         self.data_atual = self.data_inicial
-        self.time_do_usuario = random.choice(times)
+
+        self.time_do_usuario = time_usuario
 
         self.gerar_calendario()
 
@@ -51,20 +52,15 @@ class Campeonato:
 
         for _ in range(num_times - 1):
             jogos_desta_rodada = []
-
             for i in range(num_times // 2):
                 time1 = times_copia[i]
                 time2 = times_copia[num_times - 1 - i]
-
                 if _ % 2 == 0:
                     jogo = Jogo(time1, time2)
                 else:
                     jogo = Jogo(time2, time1)
-
                 jogos_desta_rodada.append(jogo)
-
             rodadas_turno.append(jogos_desta_rodada)
-
             times_copia.insert(1, times_copia.pop())
 
         rodadas_returno = []
@@ -79,24 +75,19 @@ class Campeonato:
     def get_jogos_de_hoje(self):
         dias_passados = (self.data_atual - self.data_inicial).days
         indice_rodada = dias_passados // 3
-
         if 0 <= indice_rodada < len(self.rodadas):
             return self.rodadas[indice_rodada], indice_rodada + 1
         return [], 0
 
     def avancar_um_dia(self):
         self.tratar_lesoes_globais()
-
         jogos, numero_rodada = self.get_jogos_de_hoje()
 
         if jogos and not jogos[0].foi_jogado:
             print(f"\n=== RESULTADOS DA RODADA {numero_rodada}/38 ({self.data_atual.strftime('%d/%m')}) ===")
-
             for jogo in jogos:
                 self.simular_partida(jogo)
-
             self.mostrar_resumo_usuario(numero_rodada)
-
         else:
             print(f"Dia {self.data_atual.strftime('%d/%m')}: Treino e recuperação.")
 
@@ -118,7 +109,7 @@ class Campeonato:
         chance_casa = jogo.time_casa.forca_ataque
         chance_visitante = jogo.time_visitante.forca_ataque
 
-        jogo.placar_casa = int(random.triangular(0, 4, chance_casa / 20))
+        jogo.placar_casa = int(random.triangular(0, 4, chance_casa / 18))
         jogo.placar_visitante = int(random.triangular(0, 4, chance_visitante / 20))
         jogo.foi_jogado = True
 
@@ -127,7 +118,6 @@ class Campeonato:
 
         self.aplicar_lesoes_jogo(jogo)
         self.aplicar_cartoes_jogo(jogo)
-
         self.atualizar_tabela(jogo)
 
         for j in suspensos_casa: j.suspenso = False
@@ -138,13 +128,6 @@ class Campeonato:
             prefixo = "👉 "
 
         print(f"{prefixo}{jogo.time_casa.nome} {jogo.placar_casa} x {jogo.placar_visitante} {jogo.time_visitante.nome}")
-
-        infos_extras = []
-        if jogo.lesionados: infos_extras.append(f"🚑 Lesão: {', '.join(jogo.lesionados)}")
-        if jogo.cartoes: infos_extras.append(f"🟥/🟨: {', '.join(jogo.cartoes)}")
-
-        if (jogo.time_casa == self.time_do_usuario or jogo.time_visitante == self.time_do_usuario) and infos_extras:
-            print(f"      {' | '.join(infos_extras)}")
 
         if jogo.time_casa == self.time_do_usuario:
             renda, publico = jogo.time_casa.receber_bilheteria()
@@ -169,7 +152,6 @@ class Campeonato:
                         jogador.suspenso = True
                         jogador.cartoes_amarelos = 0
                         jogo.cartoes.append(f"{jogador.nome} (3º Amarelo)")
-
                 elif random.random() < 0.005:
                     jogador.suspenso = True
                     jogo.cartoes.append(f"{jogador.nome} (Vermelho)")
@@ -180,7 +162,6 @@ class Campeonato:
             atacantes = [j for j in time.elenco if
                          ("Atacante" in j.funcao or "Meio" in j.funcao) and not j.esta_lesionado and not j.suspenso]
             if not atacantes: atacantes = time.elenco
-
             for _ in range(gols):
                 autor = random.choice(atacantes)
                 lista_nomes.append(autor.nome)
@@ -211,15 +192,11 @@ class Campeonato:
 
     def mostrar_resumo_usuario(self, rodada):
         classificacao = sorted(self.tabela.values(), key=lambda p: (p.pontos, p.vitorias, p.saldo_gols()), reverse=True)
-
-        posicao = 0
-        meu_pontos = 0
         for i, classif in enumerate(classificacao):
             if classif.time == self.time_do_usuario:
                 posicao = i + 1
                 meu_pontos = classif.pontos
                 break
-
         print(f"Resumo Rodada {rodada}: Seu time está em {posicao}º ({meu_pontos} pts)")
 
     def processar_financas(self):
