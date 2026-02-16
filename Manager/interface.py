@@ -16,6 +16,7 @@ class Interface(ctk.CTk):
         self.geometry("1000x700")
 
         self.campeonato = None
+        self.times_temp = []
 
         self.tela_inicial()
 
@@ -26,7 +27,7 @@ class Interface(ctk.CTk):
         lbl_titulo = ctk.CTkLabel(self.frame_inicial, text="Python Football Manager", font=("Arial", 32, "bold"))
         lbl_titulo.pack(pady=50)
 
-        btn_novo_jogo = ctk.CTkButton(self.frame_inicial, text="Iniciar Novo Jogo", command=self.iniciar_novo_jogo,
+        btn_novo_jogo = ctk.CTkButton(self.frame_inicial, text="Iniciar Novo Jogo", command=self.preparar_novo_jogo,
                                       width=200, height=50)
         btn_novo_jogo.pack(pady=20)
 
@@ -35,13 +36,41 @@ class Interface(ctk.CTk):
                                          command=self.carregar_jogo_existente, width=200, height=50)
             btn_carregar.pack(pady=10)
 
-    def iniciar_novo_jogo(self):
-        times = criar_times_da_liga()
-        self.campeonato = Campeonato(times, 2025)
-
-        print(f"Jogo criado! Técnico do: {self.campeonato.time_do_usuario.nome}")
-
+    def preparar_novo_jogo(self):
+        self.times_temp = criar_times_da_liga()
         self.frame_inicial.destroy()
+        self.tela_selecao_time()
+
+    def tela_selecao_time(self):
+        self.frame_selecao = ctk.CTkFrame(self)
+        self.frame_selecao.pack(fill="both", expand=True, padx=20, pady=20)
+
+        lbl_instrucao = ctk.CTkLabel(self.frame_selecao, text="Escolha seu Clube", font=("Arial", 24, "bold"))
+        lbl_instrucao.pack(pady=20)
+
+        scroll_times = ctk.CTkScrollableFrame(self.frame_selecao)
+        scroll_times.pack(fill="both", expand=True, padx=10, pady=10)
+
+        for time in self.times_temp:
+            texto_btn = f"{time.nome} - Orçamento: R$ {time.saldo_em_caixa:,.2f}"
+
+            btn = ctk.CTkButton(
+                scroll_times,
+                text=texto_btn,
+                height=40,
+                anchor="w",
+                font=("Arial", 16),
+                fg_color="transparent",
+                border_width=1,
+                text_color=("gray10", "gray90"),
+                command=lambda t=time: self.confirmar_inicio_jogo(t)
+            )
+            btn.pack(fill="x", pady=5, padx=5)
+
+    def confirmar_inicio_jogo(self, time_escolhido):
+        print(f"Time escolhido: {time_escolhido.nome}")
+        self.campeonato = Campeonato(self.times_temp, 2025, time_escolhido)
+        self.frame_selecao.destroy()
         self.abrir_dashboard()
 
     def carregar_jogo_existente(self):

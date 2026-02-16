@@ -164,6 +164,7 @@ class Campeonato:
             if not atacantes: atacantes = time.elenco
             for _ in range(gols):
                 autor = random.choice(atacantes)
+                autor.gols_temporada += 1
                 lista_nomes.append(autor.nome)
         return lista_nomes
 

@@ -12,13 +12,11 @@ class Jogador:
         self.contrato = contrato
 
         self.condicao_fisica = 100
+        self.esta_lesionado = False
         self.recuperacao = 0
         self.cartoes_amarelos = 0
         self.suspenso = False
-
-    @property
-    def esta_lesionado(self):
-        return self.recuperacao > 0
+        self.gols_temporada = 0
 
     @property
     def salario(self):
