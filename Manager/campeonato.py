@@ -106,7 +106,7 @@ class Campeonato:
         suspensos_casa = [j for j in jogo.time_casa.elenco if j.suspenso]
         suspensos_visitante = [j for j in jogo.time_visitante.elenco if j.suspenso]
 
-        chance_casa = jogo.time_casa.forca_ataque
+        chance_casa = jogo.time_casa.forca_ataque * 1.15
         chance_visitante = jogo.time_visitante.forca_ataque
 
         jogo.placar_casa = int(random.triangular(0, 4, chance_casa / 18))
